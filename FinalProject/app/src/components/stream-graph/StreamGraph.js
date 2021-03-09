@@ -17,10 +17,10 @@ export default class StreamGraph extends React.Component {
 
     // Constants.
     const width = 1000,
-          height = 500,
-          margin = {top: 100, right: 100, bottom: 100, left: 100};
+      height = 500,
+      margin = { top: 100, right: 100, bottom: 100, left: 100 };
     const FILTER_YEAR_MIN = 1980,
-          FILTER_YEAR_MAX = 2018;
+      FILTER_YEAR_MAX = 2018;
 
     d3.csv(csv)
       .then(data => {
@@ -35,34 +35,39 @@ export default class StreamGraph extends React.Component {
 
         const svg = d3.select('#container')
           .append('svg')
-            .attr('width', width)
-            .attr('height', height);
+          .attr('width', width)
+          .attr('height', height);
+
         const x = d3.scaleLinear()
           .domain([FILTER_YEAR_MIN, FILTER_YEAR_MAX])
           .range([margin.left, width - margin.right]);
+
         const y = d3.scaleLinear()
           .range([height - margin.bottom, margin.top]);
+
         const color = d3.scaleOrdinal(d3.schemeCategory10);
+
         const area = d3.area()
           .x(d => x(d.data.year))
           .y0(d => y(d[0]))
           .y1(d => y(d[1]));
+          
         const toolTip = svg
           .append('text')
-            .attr('x', margin.left + 10)
-            .attr('y', margin.top + 10)
-            .attr('opacity', 0)
-            .attr('font-size', 17);
+          .attr('x', margin.left + 10)
+          .attr('y', margin.top + 10)
+          .attr('opacity', 0)
+          .attr('font-size', 17);
 
         svg
           .append('g')
-            .call(d3.axisBottom(x))
-            .attr('transform', 'translate(0,' + (height - margin.bottom) + ')');
+          .call(d3.axisBottom(x))
+          .attr('transform', 'translate(0,' + (height - margin.bottom) + ')');
 
         svg
           .append('g')
-            .attr('id', 'y-axis')
-            .attr('transform', 'translate(' + (margin.left) + ',0)');
+          .attr('id', 'y-axis')
+          .attr('transform', 'translate(' + (margin.left) + ',0)');
 
         updateGraph('rating', loadYearToRatingData(dataFiltered));
 
@@ -101,36 +106,36 @@ export default class StreamGraph extends React.Component {
 
           layers.enter()
             .append('path')
-              .attr('class', 'layers')
-              .attr('fill', (d, i) => color(i))
-              .attr('d', area)
-              .on('mouseover', function() {
-                toolTip
-                  .attr('opacity', 1);
-                d3.selectAll('.layers')
-                  .attr('opacity', 0.5);
-                d3.select(this)
-                  .attr('opacity', 0.8)
-                  .attr('stroke', 'black');
-              })
-              .on('mousemove', function(_, d) {
-                toolTip
-                  .text(d['key']);
-              })
-              .on('mouseleave', function() {
-                toolTip
-                  .attr('opacity', 0);
-                d3.selectAll('.layers')
-                  .attr('opacity', 0.8)
-                  .attr('stroke', 'none');
-              })
-              .on('click', function(_, d) {
-                if (mode === 'rating') {
-                  updateGraph('genre', loadYearToGenreByRatingData(d));
-                } else if (mode === 'genre') {
-                  updateGraph('rating', loadYearToRatingData(dataFiltered));
-                }
-              });
+            .attr('class', 'layers')
+            .attr('fill', (d, i) => color(i))
+            .attr('d', area)
+            .on('mouseover', function () {
+              toolTip
+                .attr('opacity', 1);
+              d3.selectAll('.layers')
+                .attr('opacity', 0.5);
+              d3.select(this)
+                .attr('opacity', 0.8)
+                .attr('stroke', 'black');
+            })
+            .on('mousemove', function (_, d) {
+              toolTip
+                .text(d['key']);
+            })
+            .on('mouseleave', function () {
+              toolTip
+                .attr('opacity', 0);
+              d3.selectAll('.layers')
+                .attr('opacity', 0.8)
+                .attr('stroke', 'none');
+            })
+            .on('click', function (_, d) {
+              if (mode === 'rating') {
+                updateGraph('genre', loadYearToGenreByRatingData(d));
+              } else if (mode === 'genre') {
+                updateGraph('rating', loadYearToRatingData(dataFiltered));
+              }
+            });
           layers.exit().remove();
         }
 
