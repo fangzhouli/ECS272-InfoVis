@@ -6,7 +6,7 @@ import csv from '../../data/processed.csv';
 import './ScatterPlot.css'
 import { color, colorByGenre } from '../../utils/color';
 
-export class ScatterPlot extends Component {
+export default class ScatterPlot extends Component {
 
     componentDidMount() {
         this.drawChart();
@@ -128,17 +128,16 @@ export class ScatterPlot extends Component {
                     .range([height - margin.bottom, margin.top])
 
                 //------------------------------------------------
-                var scatterPlot = sourceByScore.selectAll('circle')
+                var scatterPoints = sourceByScore.selectAll('circle')
                     .data(dataFiltered)
                     .join('circle')
                     .attr('r', 1)
                     .attr('fill', d => colorByGenre(d.genre))
                     .attr('cx', d => inScatter(d.pop))
                     .attr('cy', d => y(d.score))
-                    .attr('class', 'scatterPoint')
-                    
+                    .attr('class', 'scatterPoints')
 
-                var animeName = scatterPlot.append('title')
+                var animeName = scatterPoints.append('title')
                     .text(d => d.name)
 
                 sourceByScore.append("g")
@@ -152,10 +151,6 @@ export class ScatterPlot extends Component {
                     .attr('transform', `translate(${margin.left},0)`)
                     .append('text')
                     .text('Score of Anime');
-
-                
-
-
             });
 
     }
@@ -166,5 +161,3 @@ export class ScatterPlot extends Component {
     }
 
 }
-
-export default ScatterPlot;

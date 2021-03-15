@@ -41,11 +41,13 @@ export default class StreamGraph extends React.Component {
       .y1(d => y(d[1]));
 
     function updateScatter(year) {
-      svg.select('.scatterPoint').filter(d => {
-        return d.year != year;
-      }).attr('visibility', 'hidden')
 
-      svg.select('.scatterPoint').filter(d => {
+      d3.selectAll('.scatterPoints').filter(d => {
+            return d.year != year;
+          })
+        .attr('visibility', 'hidden')
+
+      d3.selectAll('.scatterPoints').filter(d => {
         return d.year === year;
       }).attr('visibility', 'visible')
     }
