@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import * as d3 from "d3";
-import _ from 'lodash'
-import { axisBottom, format, geoCircle, line, scaleBand, scaleLinear, sort, zoom } from 'd3';
+import _ from 'lodash';
 import csv from '../../data/processed.csv';
 import './ScatterPlot.css'
 import { color, colorByGenre } from '../../utils/color';
+var { jStat } = require('jstat');
 
 export default class ScatterPlot extends Component {
 
@@ -18,12 +18,12 @@ export default class ScatterPlot extends Component {
 
                 var data = csv.map(row => {
                     return {
-                        source: row['source'],
                         score: Number(row['score']),
                         name: row['name'],
                         year: Number(row['year_from']),
                         pop: row['popularity'],
-                        genre: row['genre_list']
+                        genre: row['genre_list'],
+                        members: Number(row['members'])
 
                     }
                 });
@@ -40,8 +40,7 @@ export default class ScatterPlot extends Component {
                     FILTER_YEAR_MAX = 2018;
 
                 const popularityDomain = d3.extent(data.map(d => parseFloat(d.pop)))
-
-
+                const memberDomain = d3.extent(data.map(d => parseFloat(d.members)))
 
                 const dataFiltered = [];
                 data.forEach(d => {
@@ -49,10 +48,58 @@ export default class ScatterPlot extends Component {
                         dataFiltered.push(d);
                     }
                 })
+
+                function getMembers(data) {
+                    let summ = []
+                    data.forEach(d => {
+                        summ.push(d.members)
+                    })
+                    return summ;
+                }
+                let m = getMembers(dataFiltered);
+                console.log('members', m);
+                function getMean(members) {
+                    let mean = members.reduce((a, b) => a + b, 0)
+                    mean = mean / members.length
+                    return mean
+                }
+
+                let mean = getMean(m);
+                console.log('mean', mean);
+
+                function getStandardDev(members) {
+                    let mean = getMean(members);
+                    let memberMinusMeanSquared = members.map(d => {
+                        return Math.pow((d - mean), 2);
+                    })
+
+                    memberMinusMeanSquared = memberMinusMeanSquared.reduce((a, b) => a + b, 0);
+
+                    let std = Math.pow(memberMinusMeanSquared / members.length, 1 / 2);
+                    return std;
+
+                }
+
+                let std = getStandardDev(m)
+                console.log('std', std);
+                function returnZScore() {
+                    return m.map(d => {
+                        return (d - mean) / std
+                    })
+                }
+
+                let zScore = returnZScore()
+                console.log('the answer', zScore)
+                let zDomain = d3.extent(zScore)
+                let zFiltered = dataFiltered;
+                console.log(zFiltered)
+                for (let i = 0; i < zScore.length; i++) {
+                    zFiltered[i].members = zScore[i]
+                }
+
                 const genreList = ['Other', 'Supernatural', 'Slice of Life', 'Shounen',
                     'Seinen', 'Sci-Fi', 'School', 'Romance', 'Adult',
                     'Fantasy', 'Drama', 'Comedy', 'Adventure', 'Action', 'Kids'];
-
 
                 //replaces genre with single genre for rendering in scatter plot
                 dataFiltered.forEach(d => {
@@ -63,6 +110,8 @@ export default class ScatterPlot extends Component {
                         }
                     }
                 })
+
+
 
                 var svg = d3.select('#container')
                     .append('svg')
@@ -109,33 +158,42 @@ export default class ScatterPlot extends Component {
                     .attr('class', 'sourceByScore');
 
                 //get axes for sourceByScore
-                var x_sbs = scaleBand()
+                var x_sbs = d3.scaleBand()
                     .domain(['4-koma manga', 'Book', 'Card game', 'Digital manga', 'Game', 'Light novel', 'Manga', 'Music', 'Novel', 'Original', 'Other', 'Picture book', 'Radio', 'Unknown', 'Visual novel', 'Web manga'])
                     .range([margin.left, width - margin.right])
 
                 //axis for popularity
-                var x_pop = scaleLinear()
+                var x_pop = d3.scaleLinear()
                     .domain(popularityDomain)
                     .range([margin.left, width - margin.right])
 
+                var x_mem = d3.scaleLinear()
+                    .domain(memberDomain)
+                    .range([margin.left, width - margin.right])
 
+                var x_zScore = d3.scaleLinear()
+                    .domain(zDomain)
+                    .range([margin.left, width - margin.right])
+
+
+                console.log('zdomain', zDomain)
                 //change this line to render a different x axis
-                var inScatter = x_pop;
+                var inScatter = x_zScore;
 
                 //this stays constant-------------
-                var y = scaleLinear()
+                var y = d3.scaleLinear()
                     .domain([0, 10])
                     .range([height - margin.bottom, margin.top])
 
                 //------------------------------------------------
                 var scatterPoints = sourceByScore.selectAll('circle')
-                    .data(dataFiltered)
+                    .data(zFiltered)
                     .join('circle')
-                    .attr('r', 1)
+                    .attr('r', 4)
                     .attr('fill', d => colorByGenre(d.genre))
-                    .attr('cx', d => inScatter(d.pop))
+                    .attr('cx', d => inScatter(d.members))
                     .attr('cy', d => y(d.score))
-                    .attr('class', 'scatterPoints')
+                    .attr('class', 'scatterPoints');
 
                 var animeName = scatterPoints.append('title')
                     .text(d => d.name)
@@ -143,14 +201,20 @@ export default class ScatterPlot extends Component {
                 sourceByScore.append("g")
                     .call(d3.axisBottom(inScatter))
                     .attr('transform', `translate(0,${height - margin.bottom})`)
-                    .append('text')
-                    .text('Popularity Of Anime Amongst General Public');
+
+                sourceByScore.append('text')
+                    .text('Viewership of Anime')
+                    .attr('transform', `translate(${width / 2 - margin.right},${height - margin.bottom / 2})`);
 
                 sourceByScore.append("g")
                     .call(d3.axisLeft(y).ticks(10))
                     .attr('transform', `translate(${margin.left},0)`)
-                    .append('text')
-                    .text('Score of Anime');
+
+                sourceByScore.append('text')
+                    .text('Score of Anime')
+                    .attr('transform', `translate(${margin.right/2},${height/2 + margin.top/2})rotate(-90)`)
+                    
+
             });
 
     }
